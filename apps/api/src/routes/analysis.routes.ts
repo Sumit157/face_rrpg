@@ -17,7 +17,7 @@ export const analysisRouter = Router();
 
 const createAnalysisSchema = z.object({
   videoId: z.string().uuid(),
-  method: z.enum(["green", "chrom", "pos", "auto"]).default("pos"),
+  method: z.enum(["green", "chrom", "pos", "auto"]).default("auto"),
   regions: z
     .array(z.enum(["forehead", "left_cheek", "right_cheek"]))
     .min(1)

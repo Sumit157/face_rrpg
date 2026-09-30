@@ -1,0 +1,137 @@
+{
+    "analysisId":  "e2e-v12-11",
+    "videoMetadata":  {
+                          "path":  "D:\\College_Project\\rppg-deepfake-detector-3\\rppg-deepfake-detector\\tests\\fixtures\\variant_erratic.mp4",
+                          "width":  640,
+                          "height":  640,
+                          "fps":  30.0,
+                          "frameCount":  450,
+                          "durationSeconds":  15.0,
+                          "codec":  "FMP4"
+                      },
+    "faceQuality":  {
+                        "totalFrames":  450,
+                        "framesWithFace":  450,
+                        "detectionRate":  1.0,
+                        "longestGapFrames":  0,
+                        "gapEvents":  0
+                    },
+    "signalQuality":  {
+                          "forehead":  {
+                                           "meanQualityScore":  22.3
+                                       },
+                          "left_cheek":  {
+                                             "meanQualityScore":  25.7
+                                         },
+                          "right_cheek":  {
+                                              "meanQualityScore":  25.6
+                                          },
+                          "overall":  24.5,
+                          "gating":  {
+                                         "totalWindows":  6,
+                                         "keptWindows":  6,
+                                         "keptRatio":  1.0,
+                                         "keptSnrMeanDb":  -4.6,
+                                         "rejectedReasons":  {
+
+                                                             }
+                                     },
+                          "methodScores":  {
+                                               "green":  20.9,
+                                               "chrom":  24.5,
+                                               "pos":  22.8
+                                           },
+                          "measurementStrength":  0.763
+                      },
+    "method":  "auto",
+    "regions":  [
+                    "forehead",
+                    "left_cheek",
+                    "right_cheek"
+                ],
+    "windowSeconds":  12.0,
+    "stepSeconds":  3.0,
+    "bpm":  {
+                "forehead":  {
+                                 "bpmMean":  135.0,
+                                 "bpmStd":  0.0,
+                                 "bpmCv":  0.0,
+                                 "bpmMaxJump":  0.0
+                             },
+                "left_cheek":  {
+                                   "bpmMean":  105.0,
+                                   "bpmStd":  30.0,
+                                   "bpmCv":  0.2857,
+                                   "bpmMaxJump":  60.0
+                               },
+                "right_cheek":  {
+                                    "bpmMean":  105.0,
+                                    "bpmStd":  30.0,
+                                    "bpmCv":  0.2857,
+                                    "bpmMaxJump":  60.0
+                                },
+                "overall":  {
+                                "mean":  115.0,
+                                "std":  28.28
+                            }
+            },
+    "consistency":  {
+                        "meanCorrelation":  0.9979,
+                        "pairwiseCorrelations":  {
+                                                     "forehead__left_cheek":  0.9976,
+                                                     "forehead__right_cheek":  0.9977,
+                                                     "left_cheek__right_cheek":  0.9984
+                                                 },
+                        "frequencyAgreement":  1.0
+                    },
+    "featureVector":  {
+                          "bpm_mean":  115.0,
+                          "bpm_std":  28.284271,
+                          "bpm_cv":  0.24595,
+                          "bpm_max_jump":  60.0,
+                          "signal_quality_mean":  24.524997,
+                          "snr_db_mean":  -4.604501,
+                          "cross_region_mean_correlation":  0.997907,
+                          "cross_region_frequency_agreement":  1.0,
+                          "motion_score":  4.716331,
+                          "illumination_stability":  83.824834,
+                          "region_bpm_spread":  30.0,
+                          "harmonic_ratio":  0.000284,
+                          "phase_coherence":  0.993724,
+                          "amplitude_cv":  0.00233,
+                          "pulse_band_ratio":  0.996099,
+                          "spectral_entropy":  0.76005,
+                          "lr_cheek_correlation":  0.998366,
+                          "template_correlation":  0.97189,
+                          "pulse_skewness":  -0.033671,
+                          "kept_window_ratio":  1.0
+                      },
+    "prediction":  {
+                       "label":  "REAL",
+                       "probabilityReal":  0.7376,
+                       "probabilityFake":  0.2624,
+                       "modelVersion":  "rf-synthetic-v1.2",
+                       "isHeuristicFallback":  false,
+                       "explanation":  "Synchronized pulse across facial regions (cheek correlation +1.00, frequency agreement 100%, phase stability 0.99) with -4.6 dB SNR -\u003e Real"
+                   },
+    "confidence":  {
+                       "rawProbability":  0.7376,
+                       "signalQuality":  24.5,
+                       "adjustedConfidence":  0.7011
+                   },
+    "evidence":  [
+                     "Consistent dominant frequency across facial regions.",
+                     "Left and right cheeks pulse in sync (r=+1.00).",
+                     "Regions stay phase-locked over time (stable pulse-transit timing).",
+                     "Repeatable pulse waveform morphology (consistent cycle shape).",
+                     "Strong correlation between facial regions."
+                 ],
+    "warnings":  [
+                     "Signal quality is low; rPPG evidence below is less reliable and confidence has been discounted accordingly."
+                 ],
+    "artifacts":  {
+                      "forehead":  "D:\\College_Project\\rppg-deepfake-detector-3\\rppg-deepfake-detector\\storage\\signals\\e2e-v12-11.json",
+                      "left_cheek":  "D:\\College_Project\\rppg-deepfake-detector-3\\rppg-deepfake-detector\\storage\\signals\\e2e-v12-11.json",
+                      "right_cheek":  "D:\\College_Project\\rppg-deepfake-detector-3\\rppg-deepfake-detector\\storage\\signals\\e2e-v12-11.json"
+                  }
+}

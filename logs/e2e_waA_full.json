@@ -1,0 +1,135 @@
+{
+    "analysisId":  "e2e-v12-13",
+    "videoMetadata":  {
+                          "path":  "D:\\College_Project\\rppg-deepfake-detector-3\\rppg-deepfake-detector\\test_video\\WhatsApp Video 2026-09-29 at 1.49.44 PM.mp4",
+                          "width":  124,
+                          "height":  152,
+                          "fps":  30.0,
+                          "frameCount":  297,
+                          "durationSeconds":  9.9,
+                          "codec":  "h264"
+                      },
+    "faceQuality":  {
+                        "totalFrames":  297,
+                        "framesWithFace":  290,
+                        "detectionRate":  0.9764,
+                        "longestGapFrames":  2,
+                        "gapEvents":  5
+                    },
+    "signalQuality":  {
+                          "forehead":  {
+                                           "meanQualityScore":  23.5
+                                       },
+                          "left_cheek":  {
+                                             "meanQualityScore":  18.4
+                                         },
+                          "right_cheek":  {
+                                              "meanQualityScore":  23.8
+                                          },
+                          "overall":  21.9,
+                          "gating":  {
+                                         "totalWindows":  3,
+                                         "keptWindows":  3,
+                                         "keptRatio":  1.0,
+                                         "keptSnrMeanDb":  -5.17,
+                                         "rejectedReasons":  {
+
+                                                             }
+                                     },
+                          "methodScores":  {
+                                               "green":  21.9,
+                                               "chrom":  21.5,
+                                               "pos":  20.1
+                                           },
+                          "measurementStrength":  0.746
+                      },
+    "method":  "auto",
+    "regions":  [
+                    "forehead",
+                    "left_cheek",
+                    "right_cheek"
+                ],
+    "windowSeconds":  8.0,
+    "stepSeconds":  2.0,
+    "bpm":  {
+                "forehead":  {
+                                 "bpmMean":  75.0,
+                                 "bpmStd":  0.0,
+                                 "bpmCv":  0.0,
+                                 "bpmMaxJump":  0.0
+                             },
+                "left_cheek":  {
+                                   "bpmMean":  135.0,
+                                   "bpmStd":  0.0,
+                                   "bpmCv":  0.0,
+                                   "bpmMaxJump":  0.0
+                               },
+                "right_cheek":  {
+                                    "bpmMean":  135.0,
+                                    "bpmStd":  0.0,
+                                    "bpmCv":  0.0,
+                                    "bpmMaxJump":  0.0
+                                },
+                "overall":  {
+                                "mean":  115.0,
+                                "std":  28.28
+                            }
+            },
+    "consistency":  {
+                        "meanCorrelation":  0.6567,
+                        "pairwiseCorrelations":  {
+                                                     "forehead__left_cheek":  0.6273,
+                                                     "forehead__right_cheek":  0.7049,
+                                                     "left_cheek__right_cheek":  0.6378
+                                                 },
+                        "frequencyAgreement":  0.3333
+                    },
+    "featureVector":  {
+                          "bpm_mean":  115.0,
+                          "bpm_std":  28.284271,
+                          "bpm_cv":  0.24595,
+                          "bpm_max_jump":  60.0,
+                          "signal_quality_mean":  21.935074,
+                          "snr_db_mean":  -5.174284,
+                          "cross_region_mean_correlation":  0.656691,
+                          "cross_region_frequency_agreement":  0.333333,
+                          "motion_score":  42.771246,
+                          "illumination_stability":  13.793609,
+                          "region_bpm_spread":  60.0,
+                          "harmonic_ratio":  0.66694,
+                          "phase_coherence":  0.620215,
+                          "amplitude_cv":  0.134136,
+                          "pulse_band_ratio":  0.968145,
+                          "spectral_entropy":  0.874714,
+                          "lr_cheek_correlation":  0.637807,
+                          "template_correlation":  0.817411,
+                          "pulse_skewness":  -0.195174,
+                          "kept_window_ratio":  1.0
+                      },
+    "prediction":  {
+                       "label":  "FAKE",
+                       "probabilityReal":  0.4452,
+                       "probabilityFake":  0.5548,
+                       "modelVersion":  "rf-synthetic-v1.2",
+                       "isHeuristicFallback":  false,
+                       "explanation":  "Regions look pulse-synchronized (cheek correlation +0.66, frequency agreement 33%, phase stability 0.62) but the classifier found synthetic artefacts -\u003e Fake"
+                   },
+    "confidence":  {
+                       "rawProbability":  0.4452,
+                       "signalQuality":  21.9,
+                       "adjustedConfidence":  0.5458
+                   },
+    "evidence":  [
+                     "Regions disagree on dominant frequency (no shared pulse).",
+                     "Regions estimate very different heart rates (spread 60 bpm)."
+                 ],
+    "warnings":  [
+                     "Signal quality is low; rPPG evidence below is less reliable and confidence has been discounted accordingly.",
+                     "Unstable lighting detected during the video."
+                 ],
+    "artifacts":  {
+                      "forehead":  "D:\\College_Project\\rppg-deepfake-detector-3\\rppg-deepfake-detector\\storage\\signals\\e2e-v12-13.json",
+                      "left_cheek":  "D:\\College_Project\\rppg-deepfake-detector-3\\rppg-deepfake-detector\\storage\\signals\\e2e-v12-13.json",
+                      "right_cheek":  "D:\\College_Project\\rppg-deepfake-detector-3\\rppg-deepfake-detector\\storage\\signals\\e2e-v12-13.json"
+                  }
+}

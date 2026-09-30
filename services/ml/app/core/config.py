@@ -46,8 +46,9 @@ class Settings:
     host: str = os.getenv("ML_HOST", "0.0.0.0")
     port: int = int(os.getenv("ML_PORT", "8000"))
 
-    # rPPG defaults
-    default_method: str = os.getenv("RPPG_DEFAULT_METHOD", "pos")  # green | chrom | pos
+    # rPPG defaults -- "auto" runs GREEN/CHROM/POS in parallel and picks the
+    # best-SNR method per analysis (see app/rppg/multimethod.py).
+    default_method: str = os.getenv("RPPG_DEFAULT_METHOD", "auto")  # auto | green | chrom | pos
     default_regions: List[str] = field(
         default_factory=lambda: ["forehead", "left_cheek", "right_cheek"]
     )

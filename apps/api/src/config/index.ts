@@ -45,7 +45,7 @@ export const config = {
   corsOrigin: process.env.CORS_ORIGIN ?? "http://localhost:5173",
 
   defaultAnalysis: {
-    method: "pos" as const,
+    method: "auto" as const,
     regions: ["forehead", "left_cheek", "right_cheek"] as const,
     windowSeconds: 12,
     stepSeconds: 3,

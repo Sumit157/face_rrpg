@@ -75,18 +75,18 @@ def test_harmonic_ratio_meaningful_only_with_real_peak():
 
 def test_classifier_stays_uncertain_despite_misleading_harmonic_ratio():
     """Even if harmonic_ratio is misleadingly high (the noise edge case
-    above), a zero signal-quality score must still collapse the
-    prediction to UNCERTAIN -- verifying the quality-gate protects
-    against this known feature weakness."""
+    above), a zero signal-quality score with zero kept windows must still
+    collapse the verdict to UNCERTAIN -- verifying the quality gate in the
+    decision layer protects against this known feature weakness."""
     values = dict(zip(FEATURE_NAMES, [0.0] * len(FEATURE_NAMES)))
     values["signal_quality_mean"] = 0.0
     values["harmonic_ratio"] = 0.89  # misleadingly high, as measured on pure noise
-    vector = np.array([values[n] for n in FEATURE_NAMES])
 
-    clf = BaselineClassifier(model_path="/nonexistent/path.joblib")
-    pred = clf.predict(vector)
-    assert pred.label == "UNCERTAIN"
-    assert pred.probability_real == pytest.approx(0.5)
+    from app.pipeline.decision import decide
+
+    decision = decide(values, detection_rate=1.0)
+    assert decision.label == "UNCERTAIN"
+    assert decision.probability_real == pytest.approx(0.5)
 
 
 def test_haar_fallback_detector_loads_and_derives_regions():

@@ -84,8 +84,15 @@ def test_synchronised_regions_show_high_consistency():
     assert pred.label in ("REAL", "FAKE", "UNCERTAIN")
     assert pred.is_heuristic_fallback is True
 
-    conf = calibrate(pred.probability_real, fv.values["signal_quality_mean"])
+    # Final labelling happens in the decision-fusion layer (quality-aware).
+    from app.pipeline.decision import decide
+
+    decision = decide(fv.values, detection_rate=1.0)
+    assert decision.label in ("REAL", "FAKE", "UNCERTAIN")
+    assert 0.0 <= decision.confidence <= 1.0
+
+    conf = calibrate(decision, fv.values["signal_quality_mean"])
     assert 0 <= conf.adjusted_confidence <= 1
 
-    evidence, warnings = build_evidence_and_warnings(fv.values, pred.label)
+    evidence, warnings = build_evidence_and_warnings(fv.values, decision)
     assert isinstance(evidence, list) and isinstance(warnings, list)

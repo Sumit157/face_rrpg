@@ -12,7 +12,7 @@ from pydantic import BaseModel, Field
 class AnalyseRequest(BaseModel):
     analysis_id: str
     video_path: str
-    method: str = Field(default="pos", pattern="^(green|chrom|pos|auto)$")
+    method: str = Field(default="auto", pattern="^(green|chrom|pos|auto)$")
     regions: List[str] = Field(default_factory=lambda: ["forehead", "left_cheek", "right_cheek"])
     window_seconds: float = 12.0
     step_seconds: float = 3.0

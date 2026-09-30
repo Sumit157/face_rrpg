@@ -21,6 +21,11 @@ export function PredictionCard({ prediction, confidence }: Props) {
       <div className="font-mono text-lg mt-1 text-slate-200">
         {Math.round(confidence.adjustedConfidence * 100)}% confidence
       </div>
+      {prediction.explanation && (
+        <p className="text-xs text-slate-300 mt-3 mx-auto max-w-md leading-relaxed border-t border-surface-700 pt-3">
+          {prediction.explanation}
+        </p>
+      )}
       <p className="text-xs text-slate-500 mt-4 leading-relaxed">
         Model: <span className="font-mono">{prediction.modelVersion}</span>
         {prediction.isHeuristicFallback && (

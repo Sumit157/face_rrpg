@@ -19,11 +19,16 @@ export interface PredictionResult {
   probabilityFake: number;
   modelVersion: string;
   isHeuristicFallback: boolean;
+  /** Short human-readable reason for the verdict (present on analyses
+   * produced by the decision-fusion pipeline). */
+  explanation?: string;
 }
 
 export interface CalibratedConfidence {
   rawProbability: number;
   signalQuality: number;
+  /** Confidence in the STATED label (0-1), discounted by how judgeable
+   * the video was -- not P(real). */
   adjustedConfidence: number;
 }
 

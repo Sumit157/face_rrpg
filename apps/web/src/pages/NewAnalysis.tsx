@@ -6,7 +6,7 @@ import { useCreateAnalysis } from "../hooks/useAnalysis";
 import { DEFAULT_ANALYSIS_PARAMS } from "../services/analysis";
 import type { RPPGMethod, FaceRegion } from "@rppg/shared-types";
 
-const METHODS: RPPGMethod[] = ["pos", "chrom", "green"];
+const METHODS: RPPGMethod[] = ["auto", "pos", "chrom", "green"];
 const ALL_REGIONS: FaceRegion[] = ["forehead", "left_cheek", "right_cheek"];
 
 export default function NewAnalysis() {

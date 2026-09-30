@@ -122,11 +122,11 @@ def run_analysis(
             )
 
         progress("extracting_signals", 45, f"Extracting {method.upper()} rPPG signal per region")
-        progress("processing_signals", 60, "Filtering and windowing signals")
+        progress("processing_signals", 60, "Filtering, quality-gating and windowing signals")
         progress("extracting_features", 75, "Computing temporal and cross-region features")
         region_analysis = analyse_regions(
             extraction.region_rgb, extraction.fps, method, window_seconds, step_seconds,
-            extraction.face_centroids,
+            extraction.face_centroids, extraction.flow_magnitudes,
         )
 
         if not region_analysis.usable_regions:
@@ -150,10 +150,11 @@ def run_analysis(
                 warnings=warnings,
             )
 
-        # Per-window boundaries + BPM/quality for the Pipeline tab's
-        # window-segmentation view (full-clip waveforms already live in
-        # the signal artifacts).
+        # Per-window boundaries + BPM/quality/gate status for the Pipeline
+        # tab's window-segmentation view (full-clip waveforms already live
+        # in the signal artifacts).
         for region, res in region_analysis.region_results.items():
+            kept_flags = region_analysis.gating.window_kept.get(region, [])
             entries = []
             for i, bpm_val in enumerate(res.window_bpm):
                 start_s = i * step_seconds
@@ -167,12 +168,15 @@ def run_analysis(
                         "quality": round(quality.quality_score, 1)
                         if quality is not None
                         else None,
+                        "kept": kept_flags[i] if i < len(kept_flags) else True,
                     }
                 )
             windows_info.append({"region": region, "windows": entries})
 
-        progress("running_model", 88, "Running classifier")
-        bundle = run_prediction(region_analysis)
+        progress("running_model", 88, "Running quality-aware decision fusion")
+        bundle = run_prediction(
+            region_analysis, detection_rate=extraction.tracking.detection_rate
+        )
 
         # Persist large waveform/spectrum arrays as files (kept out of the
         # response body); the Node API serves them from GET /:id/signal.
@@ -181,7 +185,7 @@ def run_analysis(
         )
 
         evidence, extra_warnings = build_evidence_and_warnings(
-            bundle.feature_vector.values, bundle.prediction.label
+            bundle.feature_vector.values, bundle.decision
         )
         warnings.extend(extra_warnings)
 
@@ -202,12 +206,22 @@ def run_analysis(
         signal_quality_summary["overall"] = round(
             bundle.feature_vector.values.get("signal_quality_mean", 0.0), 1
         )
+        signal_quality_summary["gating"] = region_analysis.gating.to_dict()
+        signal_quality_summary["methodScores"] = {
+            m: round(q, 1) for m, q in region_analysis.method_selection.mean_quality.items()
+        }
+        signal_quality_summary["measurementStrength"] = round(
+            bundle.decision.measurement_strength, 3
+        )
 
         result_info = {
             "method": method,
+            "selectedMethod": region_analysis.method_selection.selected,
             "regions": region_analysis.usable_regions,
             "windowSeconds": window_seconds,
             "stepSeconds": step_seconds,
+            "gating": region_analysis.gating.to_dict(),
+            "cues": {k: round(v, 3) for k, v in bundle.decision.cues.items()},
         }
 
         progress("generating_report", 96, "Assembling structured result")

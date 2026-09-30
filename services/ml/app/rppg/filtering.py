@@ -1,25 +1,47 @@
 """Detrending, normalisation and band-pass filtering for rPPG traces."""
 from __future__ import annotations
+from functools import lru_cache
 import numpy as np
+from scipy import linalg as sla
 from scipy import signal as sps
 
 from app.core.config import settings
+
+LAM = 300  # smoothing strength; larger = smoother baseline removed
+
+
+@lru_cache(maxsize=4)
+def _detrend_cholesky(n: int, lam: int):
+    """Cholesky factor of the smoothness-priors system matrix (I + lam^2 D2' D2).
+
+    The matrix depends only on the signal length, so factorising once and
+    reusing it turns the original O(n^3) dense solve per call into an
+    O(n^2) back-substitution -- a large win when the same length recurs
+    (training over thousands of synthetic clips, or all regions of one
+    video which share a sample count)."""
+    d2 = np.diff(np.eye(n), n=2, axis=0)
+    a = np.eye(n) + (lam ** 2) * (d2.T @ d2)
+    return sla.cho_factor(a, lower=True)
 
 
 def detrend(x: np.ndarray) -> np.ndarray:
     """Remove slow drift (illumination change, minor head movement) using a
     smoothness-priors detrending approach (Tarvainen et al., 2002), which
     is gentler than a simple linear detrend and standard in the rPPG
-    literature."""
+    literature. Very long clips (n > 4000) take a cheap linear-trend +
+    smoothing baseline instead: the exact solver would need an n x n dense
+    matrix (gigabytes at the 600s cap) for visually no benefit after the
+    band-pass."""
     n = len(x)
     if n < 3:
-        return x - np.mean(x)
-    lam = 300  # smoothing strength; larger = smoother baseline removed
-    identity = np.eye(n)
-    d2 = np.diff(identity, n=2, axis=0)
-    baseline = np.linalg.solve(
-        identity + (lam ** 2) * (d2.T @ d2), x
-    )
+        return x - x.mean()
+    if n > 4000:
+        linear = sps.detrend(x)
+        window = min(n - 1, max(101, (n // 20) | 1))
+        baseline = sps.savgol_filter(linear, window_length=window, polyorder=2)
+        return linear - baseline
+    c, low = _detrend_cholesky(n, LAM)
+    baseline = sla.cho_solve((c, low), x)
     return x - baseline
 
 
