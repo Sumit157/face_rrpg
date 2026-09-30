@@ -1,0 +1,13 @@
+[project]
+name = "rppg-ml-service"
+version = "0.1.0"
+description = "rPPG-based physiological consistency analysis for explainable deepfake detection"
+requires-python = ">=3.11"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"

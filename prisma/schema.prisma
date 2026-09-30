@@ -1,0 +1,138 @@
+// Prisma schema for the rPPG Deepfake Detection System.
+// Deliberately minimal per spec section 16 ("do not over-engineer the
+// database before the analysis pipeline works") -- extend as the
+// research pipeline's needs become concrete.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// SQLite so the stack runs with zero external infrastructure (no Docker /
+// PostgreSQL needed). The original PostgreSQL provider is one `provider`
+// flip away if you deploy with docker-compose -- see docs/architecture.md.
+// SQLite has no native Json/array column types, so `regions`, `result` and
+// `metrics` are stored as JSON-encoded strings and (de)serialised in
+// src/services/serializers.ts.
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String     @id @default(uuid())
+  email        String     @unique
+  passwordHash String?
+  createdAt    DateTime   @default(now())
+  videos       Video[]
+  analyses     Analysis[]
+}
+
+model Video {
+  id               String     @id @default(uuid())
+  originalFilename String
+  storagePath      String
+  sizeBytes        Int
+  width            Int?
+  height           Int?
+  fps              Float?
+  durationSeconds  Float?
+  codec            String?
+  uploadedAt       DateTime   @default(now())
+  userId           String?
+  user             User?      @relation(fields: [userId], references: [id])
+  analyses         Analysis[]
+}
+
+model Analysis {
+  id            String    @id @default(uuid())
+  videoId       String
+  video         Video     @relation(fields: [videoId], references: [id])
+  userId        String?
+  user          User?     @relation(fields: [userId], references: [id])
+
+  method        String    // green | chrom | pos | auto
+  regions       String    // JSON array of: forehead | left_cheek | right_cheek
+  windowSeconds Float
+  stepSeconds   Float
+
+  status        String    @default("queued")
+  errorMessage  String?
+
+  // Full structured result from the Python service (spec section 12),
+  // stored as JSON rather than fully normalised so the schema doesn't
+  // need to change every time a new feature/metric is added during
+  // active research. Stored as a JSON-encoded string (SQLite has no
+  // Json column type); parsed by serializeAnalysis().
+  result        String?
+
+  createdAt     DateTime  @default(now())
+  completedAt   DateTime?
+
+  rppgResults   RPPGResult[]
+  features      Feature[]
+  reports       Report[]
+
+  @@index([status])
+  @@index([videoId])
+}
+
+model RPPGResult {
+  id           String   @id @default(uuid())
+  analysisId   String
+  analysis     Analysis @relation(fields: [analysisId], references: [id])
+  region       String
+  method       String
+  bpmMean      Float?
+  bpmStd       Float?
+  signalQuality Float?
+  snrDb        Float?
+  artifactPath String?  // path to the saved waveform/spectrum array (spec: large
+                         // arrays are saved as files/artifacts, not embedded)
+  createdAt    DateTime @default(now())
+
+  @@index([analysisId])
+}
+
+model RegionResult {
+  id           String   @id @default(uuid())
+  analysisId   String
+  region       String
+  correlationWith String  // paired region key, e.g. "forehead__left_cheek"
+  correlation  Float
+  createdAt    DateTime @default(now())
+
+  @@index([analysisId])
+}
+
+model Feature {
+  id         String   @id @default(uuid())
+  analysisId String
+  analysis   Analysis @relation(fields: [analysisId], references: [id])
+  name       String
+  value      Float
+  createdAt  DateTime @default(now())
+
+  @@index([analysisId])
+}
+
+model ModelVersion {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  description String?
+  filePath    String
+  metrics     String? // JSON-encoded metrics object
+  isActive    Boolean  @default(false)
+  createdAt   DateTime @default(now())
+}
+
+model Report {
+  id         String   @id @default(uuid())
+  analysisId String
+  analysis   Analysis @relation(fields: [analysisId], references: [id])
+  filePath   String?
+  format     String   @default("json") // json | pdf | html
+  createdAt  DateTime @default(now())
+
+  @@index([analysisId])
+}

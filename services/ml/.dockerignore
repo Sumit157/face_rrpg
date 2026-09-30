@@ -1,0 +1,8 @@
+venv/
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+models_assets/*.task
+storage/
+data/

@@ -1,0 +1,14 @@
+[
+    {
+        "Name":  "variant_no_pulse",
+        "AnalysisId":  "d5b9460d-e14b-4c71-ac6a-00801a7898dd"
+    },
+    {
+        "Name":  "variant_erratic",
+        "AnalysisId":  "c579c5ed-959b-4380-894f-5dcbd473b27f"
+    },
+    {
+        "Name":  "variant_desync",
+        "AnalysisId":  "56e4a4e4-cbf9-451c-80a2-f85b80f1d36c"
+    }
+]

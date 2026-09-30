@@ -1,0 +1,22 @@
+{
+  "name": "rppg-deepfake-detector",
+  "private": true,
+  "version": "0.1.0",
+  "packageManager": "pnpm@9.11.0",
+  "scripts": {
+    "dev:api": "pnpm --filter @rppg/api dev",
+    "dev:web": "pnpm --filter @rppg/web dev",
+    "dev:ml": "node scripts/ml.mjs dev",
+    "setup": "pnpm install && pnpm prisma:generate && pnpm prisma:migrate",
+    "typecheck": "pnpm --filter @rppg/shared-types typecheck && pnpm --filter @rppg/api typecheck && pnpm --filter @rppg/web typecheck",
+    "build": "pnpm --filter @rppg/shared-types build --if-present && pnpm --filter @rppg/api build && pnpm --filter @rppg/web build",
+    "prisma:generate": "pnpm --filter @rppg/api prisma:generate",
+    "prisma:migrate": "pnpm --filter @rppg/api prisma:migrate",
+    "test:ml": "node scripts/ml.mjs test"
+  },
+  "devDependencies": {
+    "@prisma/client": "^5.20.0",
+    "prisma": "^5.20.0",
+    "typescript": "^5.6.2"
+  }
+}

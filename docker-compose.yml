@@ -1,0 +1,45 @@
+# Zero-infra topology: SQLite (file volume) + in-process analysis queue.
+# Local development does not need Docker at all -- see README quickstart.
+services:
+  ml-service:
+    build: ./services/ml
+    environment:
+      ML_HOST: 0.0.0.0
+      ML_PORT: 8000
+      STORAGE_DIR: /storage
+      MODEL_PATH: /models/production/baseline.joblib
+    volumes:
+      - ./storage:/storage
+      - ./models:/models
+    ports: ["8000:8000"]
+
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    environment:
+      PORT: 3000
+      NODE_ENV: production
+      # SQLite on a named volume (no Postgres in zero-infra mode).
+      DATABASE_URL: "file:/data/db/dev.db"
+      ML_SERVICE_URL: http://ml-service:8000
+      STORAGE_DIR: /storage
+      UPLOADS_DIR: /storage/uploads
+      CORS_ORIGIN: http://localhost:5173
+    command: ["sh", "-c", "npx prisma migrate deploy --schema prisma/schema.prisma && node dist/server.js"]
+    depends_on:
+      - ml-service
+    volumes:
+      - ./storage:/storage
+      - api_db:/data/db
+    ports: ["3000:3000"]
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+    depends_on: ["api"]
+    ports: ["5173:80"]
+
+volumes:
+  api_db:
