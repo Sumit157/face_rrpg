@@ -128,6 +128,7 @@ def analyse_regions(
                 extras["lr_cheek_correlation"] = 0.0 if np.isnan(lr) else lr
 
     extras["kept_window_ratio"] = gating.kept_ratio
+    extras["effective_kept_window_ratio"] = gating.effective_kept_ratio
     extras["gated_bpm_mean"], extras["gated_bpm_std"], extras["gated_bpm_cv"], \
         extras["gated_bpm_max_jump"] = gated_temporal(gating.kept_bpm)
 

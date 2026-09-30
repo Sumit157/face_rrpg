@@ -19,6 +19,27 @@ explainability — is **implemented and tested end-to-end** (`services/ml/`, see
 and verified end-to-end locally (upload → queued job → progress → completed analysis with
 signal/report endpoints; see [`docs/implementation_status.md`](docs/implementation_status.md)).
 
+## Detection pipeline
+
+Each frame is tracked with MediaPipe Face Mesh (with a local Haar fallback), segmented to skin
+pixels in YCbCr, and sampled from the forehead plus both cheeks. GREEN, CHROM, and POS extractors
+run for every clip; the strongest method is selected after window-level SNR checks. The pipeline
+detrends and band-pass filters signals to 0.7–4 Hz, suppresses background illumination drift, and
+uses landmark/optical-flow motion to discount unstable measurements.
+
+The final decision fuses a calibrated Random Forest probability with transparent cues: bilateral
+cheek correlation, cross-region frequency and phase agreement, SNR, heart-rate stability,
+waveform repeatability, morphology, and compression-resistant spectral concentration. Windows
+near the SNR floor are down-weighted instead of causing a blanket inconclusive result. `UNCERTAIN`
+is reserved for a missing face or a truly unmeasurable video; a face-detectable video otherwise
+returns Real or Fake with quality-calibrated confidence. The result page shows those quality-gate
+and method diagnostics, and **Signal Explorer** provides the per-region waveform and spectrum.
+
+`models/production/baseline.joblib` is trained on synthetic physiological-coherence data and is
+useful as a lightweight fallback. For a production claim, retrain and evaluate it with labelled,
+subject-disjoint real and manipulated video using `scripts/extract_features.py`,
+`scripts/train_baseline.py`, and `scripts/evaluate.py`.
+
 ## Quick start (local, zero infrastructure)
 
 No Docker, Postgres or Redis needed: SQLite + an in-process job queue.

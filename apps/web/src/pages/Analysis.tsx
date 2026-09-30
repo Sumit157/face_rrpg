@@ -142,6 +142,41 @@ export default function Analysis() {
                     </div>
                   </div>
 
+                  <div className="panel p-4">
+                    <div className="flex items-center justify-between gap-3 mb-3">
+                      <h3 className="text-sm text-slate-300">Decision diagnostics</h3>
+                      <Link to="/signal-explorer" className="text-xs text-accent hover:underline">
+                        Inspect waveforms
+                      </Link>
+                    </div>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+                      <Diagnostic label="Quality-gated windows"
+                        value={`${Math.round(((data.signalQuality as any)?.gating?.keptRatio ?? 0) * 100)}%`}
+                        detail={`${(data.signalQuality as any)?.gating?.keptWindows ?? 0} / ${(data.signalQuality as any)?.gating?.totalWindows ?? 0} usable`} />
+                      <Diagnostic label="Weighted usable evidence"
+                        value={`${Math.round(((data.signalQuality as any)?.gating?.effectiveKeptRatio ?? 0) * 100)}%`}
+                        detail="borderline compression windows down-weighted" />
+                      <Diagnostic label="Measurement strength"
+                        value={`${Math.round(((data.signalQuality as any)?.measurementStrength ?? 0) * 100)}%`}
+                        detail="caps confidence when video is weak" />
+                      <Diagnostic label="Selected rPPG method"
+                        value={String((data.signalQuality as any)?.selectedMethod ?? data.method ?? "auto").toUpperCase()}
+                        detail="GREEN, POS and CHROM compared" />
+                    </div>
+                    {Object.keys((data.signalQuality as any)?.methodScores ?? {}).length > 0 && (
+                      <div className="mt-4 border-t border-surface-700 pt-3">
+                        <div className="text-xs text-slate-500 mb-2">Method signal-quality scores</div>
+                        <div className="flex flex-wrap gap-2">
+                          {Object.entries((data.signalQuality as any).methodScores).map(([method, score]) => (
+                            <span key={method} className="font-mono text-xs px-2 py-1 rounded bg-surface-800 text-slate-300">
+                              {method.toUpperCase()}: {Number(score).toFixed(1)}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
                   <RegionCorrelation
                     pairwiseCorrelations={(data.consistency as any)?.pairwiseCorrelations ?? {}}
                   />
@@ -173,5 +208,15 @@ export default function Analysis() {
         </>
       )}
     </Layout>
+  );
+}
+
+function Diagnostic({ label, value, detail }: { label: string; value: string; detail: string }) {
+  return (
+    <div className="rounded bg-surface-800 p-3">
+      <div className="text-xs text-slate-500">{label}</div>
+      <div className="mt-1 font-mono text-base text-slate-100">{value}</div>
+      <div className="mt-1 text-[11px] leading-snug text-slate-500">{detail}</div>
+    </div>
   );
 }

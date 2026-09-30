@@ -210,6 +210,7 @@ def run_analysis(
         signal_quality_summary["methodScores"] = {
             m: round(q, 1) for m, q in region_analysis.method_selection.mean_quality.items()
         }
+        signal_quality_summary["selectedMethod"] = region_analysis.method_selection.selected
         signal_quality_summary["measurementStrength"] = round(
             bundle.decision.measurement_strength, 3
         )

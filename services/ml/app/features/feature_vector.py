@@ -121,5 +121,8 @@ def build_feature_vector(
         "template_correlation": extras.get("template_correlation", 0.5),
         "pulse_skewness": extras.get("pulse_skewness", 0.0),
         "kept_window_ratio": extras.get("kept_window_ratio", 0.0),
+        # Kept outside FEATURE_NAMES until the deployed model is retrained;
+        # the decision fusion consumes it immediately without schema drift.
+        "effective_kept_window_ratio": extras.get("effective_kept_window_ratio", 0.0),
     }
     return FeatureVector(values=values)

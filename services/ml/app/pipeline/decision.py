@@ -10,12 +10,12 @@ Design (see docs/architecture.md "Decision fusion"):
 3. Fusion -- p_cue = 0.65 * model + 0.35 * rules (rules only, when
    untrained). Never a single weak signal decides alone.
 4. Measurement strength -- how much the video actually lets us judge
-   (signal quality + kept-window ratio + face detection rate). Weak
-   measurements blend the fused score toward a conservative REAL-leaning
-   prior instead of flip-flopping around 0.5.
+   (signal quality + weighted kept-window ratio + face detection rate).
+   Weak measurements shrink the fused score toward neutral and discount
+   confidence; they never inherit an authenticity prior.
 5. Uncertainty -- reserved for EXTREMELY poor videos (per the spec):
-   no detectable face, or nothing survived quality gating on top of
-   garbage quality, or very low SNR + high motion + unstable lighting.
+   no detectable face, no measurable pulse at all, or very low SNR + high
+   motion + unstable lighting.
    Every other clip gets a forced Real/Fake decision.
 
 Confidence = P(favoured class) discounted by measurement strength, so
@@ -33,8 +33,7 @@ from app.features.cue_scores import rule_score
 logger = get_logger(__name__)
 
 MODEL_WEIGHT = 0.65      # weight of trained model vs rule cues when both exist
-REAL_PRIOR = 0.62        # conservative lean when evidence can't discriminate
-SNR_FLOOR_DB = -6.0      # measurement floor (matches quality_gating.SNR_FLOOR_DB)
+SNR_FLOOR_DB = -8.0      # measurement floor (matches quality_gating.SNR_FLOOR_DB)
 
 
 def _clip01(x: float) -> float:
@@ -67,7 +66,7 @@ def measurement_strength(f: Dict[str, float], detection_rate: float) -> float:
     windows, how many windows survived quality gating, and how reliably
     a face was detectable."""
     quality = _clip01(f.get("signal_quality_mean", 0.0) / 60.0)
-    kept = _clip01(f.get("kept_window_ratio", 0.0))
+    kept = _clip01(f.get("effective_kept_window_ratio", f.get("kept_window_ratio", 0.0)))
     detection = _clip01((detection_rate - 0.3) / 0.5)  # <30% -> 0, >=80% -> 1
     return float(np.clip(0.40 * quality + 0.30 * kept + 0.30 * detection, 0.0, 1.0))
 
@@ -84,8 +83,8 @@ def _extreme_poor(f: Dict[str, float], detection_rate: float) -> tuple[bool, str
 
     if detection_rate < 0.25:
         return True, "no usable face detected"
-    if kept <= 0.0 and quality < 30.0:
-        return True, "no analysis window passed the quality gate"
+    if kept <= 0.0 and quality < 10.0 and snr <= -10.0:
+        return True, "no measurable pulse survived quality gating"
     if snr <= SNR_FLOOR_DB and motion > 65.0 and illum < 40.0 and quality < 30.0:
         return True, "very low SNR with high motion and unstable lighting"
     if quality < 10.0 and kept < 0.2:
@@ -169,9 +168,10 @@ def decide(
         )
         uncertain_reason = extreme_reason
     else:
-        # Weak measurements drift toward the conservative prior instead of
-        # flipping labels on noise; strong measurements decide outright.
-        p_final = strength * p_cue + (1.0 - strength) * REAL_PRIOR
+        # Weak measurements shrink towards neutral, never a REAL prior.
+        # This keeps a detectable but incoherent compressed clip decisive
+        # while lowering its confidence.
+        p_final = 0.5 + strength * (p_cue - 0.5)
         label = "REAL" if p_final >= 0.5 else "FAKE"
         side_p = p_final if label == "REAL" else 1.0 - p_final
         discount = _clip01(0.35 + 0.65 * strength)

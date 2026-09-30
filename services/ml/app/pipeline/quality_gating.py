@@ -19,7 +19,10 @@ import numpy as np
 
 from app.features.hr_features import RegionHRResult
 
-SNR_FLOOR_DB = -6.0
+# Compression and phone footage frequently sits below the older -6 dB
+# cutoff. Keep borderline windows with a small reliability weight.
+SNR_FLOOR_DB = -8.0
+SNR_FULL_WEIGHT_DB = 3.0
 BAND_RATIO_MIN = 0.02
 BPM_MIN = 40.0
 BPM_MAX = 180.0
@@ -30,6 +33,7 @@ class GatingReport:
     total_windows: int = 0
     kept_windows: int = 0
     kept_snr: List[float] = field(default_factory=list)      # SNR of kept windows
+    kept_weights: List[float] = field(default_factory=list)  # soft reliability of kept windows
     kept_bpm: List[float] = field(default_factory=list)      # BPM of kept windows (all regions)
     region_kept_bpm: Dict[str, List[float]] = field(default_factory=dict)
     rejected_reasons: Dict[str, int] = field(default_factory=dict)
@@ -45,6 +49,17 @@ class GatingReport:
     def kept_snr_mean(self) -> float:
         return float(np.mean(self.kept_snr)) if self.kept_snr else -20.0
 
+    @property
+    def effective_kept_ratio(self) -> float:
+        """Quality-weighted fraction of usable windows.
+
+        A borderline -7 dB window remains useful evidence, but contributes
+        much less than a clean +3 dB measurement.
+        """
+        if not self.total_windows:
+            return 0.0
+        return float(np.sum(self.kept_weights) / self.total_windows)
+
     def _reject(self, reason: str) -> None:
         self.rejected_reasons[reason] = self.rejected_reasons.get(reason, 0) + 1
 
@@ -53,6 +68,7 @@ class GatingReport:
             "totalWindows": self.total_windows,
             "keptWindows": self.kept_windows,
             "keptRatio": round(self.kept_ratio, 4),
+            "effectiveKeptRatio": round(self.effective_kept_ratio, 4),
             "keptSnrMeanDb": round(self.kept_snr_mean, 2),
             "rejectedReasons": dict(self.rejected_reasons),
         }
@@ -78,6 +94,12 @@ def gate_windows(region_results: Dict[str, RegionHRResult]) -> GatingReport:
                 kept_flags.append(True)
                 report.kept_windows += 1
                 report.kept_snr.append(quality.snr_db)
+                report.kept_weights.append(float(np.clip(
+                    (quality.snr_db - SNR_FLOOR_DB) /
+                    (SNR_FULL_WEIGHT_DB - SNR_FLOOR_DB),
+                    0.10,
+                    1.0,
+                )))
                 report.kept_bpm.append(bpm)
                 kept_bpm.append(bpm)
             else:

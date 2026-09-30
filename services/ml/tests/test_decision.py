@@ -111,6 +111,28 @@ def test_low_quality_but_measurable_still_forces_a_decision():
     assert d.explanation
 
 
+def test_detectable_low_snr_clip_is_decisive_when_physiology_is_incoherent():
+    """A visible face with bad rPPG is not automatically inconclusive.
+
+    This is the common compressed-video case: the output must remain a
+    conservative FAKE lean (with low confidence), rather than becoming
+    UNCERTAIN or inheriting an unjustified REAL prior.
+    """
+    weak_fake = {
+        **NO_PULSE,
+        "signal_quality_mean": 18.0,
+        "kept_window_ratio": 0.0,
+        "effective_kept_window_ratio": 0.12,
+        "kept_snr_mean": -8.5,
+        "snr_db_mean": -8.5,
+        "motion_score": 22.0,
+        "illumination_stability": 82.0,
+    }
+    d = decide(weak_fake, detection_rate=0.92)
+    assert d.label == "FAKE"
+    assert 0.5 <= d.confidence < 0.70
+
+
 def test_no_face_detected_is_uncertain():
     d = decide(dict(CLEAN_REAL), detection_rate=0.1)
     assert d.label == "UNCERTAIN"

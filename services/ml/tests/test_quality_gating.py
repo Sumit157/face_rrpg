@@ -44,6 +44,7 @@ def test_low_snr_windows_are_rejected():
     assert report.window_kept["forehead"] == [False, True, True]
     assert report.region_kept_bpm["forehead"] == [72, 71]
     assert report.to_dict()["keptRatio"] == 0.6
+    assert 0.0 < report.effective_kept_ratio <= report.kept_ratio
 
 
 def test_implausible_bpm_and_tiny_band_ratio_rejected():
