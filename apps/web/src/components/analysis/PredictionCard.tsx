@@ -27,13 +27,9 @@ export function PredictionCard({ prediction, confidence }: Props) {
         </p>
       )}
       <p className="text-xs text-slate-500 mt-4 leading-relaxed">
-        Model: <span className="font-mono">{prediction.modelVersion}</span>
-        {prediction.isHeuristicFallback && (
-          <>
-            <br />
-            untrained heuristic — for demonstration only
-          </>
-        )}
+        Decision: <span className="font-mono">{prediction.modelVersion}</span>
+        <br />
+        Model-free rPPG cue fusion; real-video accuracy has not been independently validated.
       </p>
       <p className="text-[11px] text-slate-600 mt-2 leading-snug">
         Confidence discounted by signal quality ({confidence.signalQuality.toFixed(0)}/100).

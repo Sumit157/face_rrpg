@@ -23,7 +23,14 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 from sklearn.metrics import (
-    roc_auc_score, accuracy_score, f1_score, confusion_matrix, classification_report,
+    accuracy_score,
+    balanced_accuracy_score,
+    brier_score_loss,
+    classification_report,
+    confusion_matrix,
+    f1_score,
+    recall_score,
+    roc_auc_score,
 )
 
 from app.features.feature_vector import FEATURE_NAMES
@@ -36,22 +43,60 @@ def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--model", default="models/production/baseline.joblib")
     parser.add_argument("--features", required=True)
+    parser.add_argument(
+        "--training-features", default="data/processed/features/features.csv",
+        help="Training feature table used to reject subject overlap with the test table",
+    )
     parser.add_argument("--output-dir", default="experiments/results")
     args = parser.parse_args()
 
     model = joblib.load(args.model)
     df = pd.read_csv(args.features)
-    X = df[FEATURE_NAMES].values
-    y = (df["label"] == "real").astype(int).values
+    train_df = pd.read_csv(args.training_features)
+    required = set(FEATURE_NAMES) | {"label", "subjectId"}
+    for name, frame in (("test", df), ("training", train_df)):
+        missing = sorted(required - set(frame.columns))
+        if missing:
+            raise ValueError(f"{name} feature table is missing columns: {', '.join(missing)}")
 
-    proba = model.predict_proba(X)[:, 1]
+    labels = df["label"].astype(str).str.strip().str.lower()
+    unexpected = sorted(set(labels) - {"real", "fake"})
+    if unexpected or labels.nunique() != 2:
+        raise ValueError("Test table must contain both 'real' and 'fake' labels only")
+    if df["subjectId"].isna().any() or train_df["subjectId"].isna().any():
+        raise ValueError("Train and test rows must have subjectId values")
+    overlap = set(df["subjectId"]) & set(train_df["subjectId"])
+    if overlap:
+        raise ValueError(
+            f"Evaluation is not subject-independent: {len(overlap)} subjectId values "
+            "occur in both training and test tables"
+        )
+    for name, frame in (("test", df),):
+        values = frame[FEATURE_NAMES].to_numpy(dtype=float)
+        if not np.isfinite(values).all():
+            raise ValueError(f"{name} feature table contains missing or non-finite feature values")
+
+    X = df[FEATURE_NAMES].values
+    y = (labels == "real").astype(int).values
+
+    class_index = list(model.classes_).index(1)
+    proba = model.predict_proba(X)[:, class_index]
     pred = (proba > 0.5).astype(int)
 
     metrics = {
         "auc": float(roc_auc_score(y, proba)),
         "accuracy": float(accuracy_score(y, pred)),
-        "f1": float(f1_score(y, pred)),
+        "balancedAccuracy": float(balanced_accuracy_score(y, pred)),
+        "macroF1": float(f1_score(y, pred, average="macro")),
+        "realRecall": float(recall_score(y, pred, pos_label=1)),
+        "fakeRecall": float(recall_score(y, pred, pos_label=0)),
+        "brierScore": float(brier_score_loss(y, proba)),
         "classificationReport": classification_report(y, pred, target_names=["fake", "real"], output_dict=True),
+        "evaluationProtocol": "subject_disjoint_held_out_feature_table",
+        "trainingSubjects": int(train_df["subjectId"].nunique()),
+        "testSubjects": int(df["subjectId"].nunique()),
+        "testSamples": int(len(df)),
+        "testClassCounts": {"fake": int((y == 0).sum()), "real": int((y == 1).sum())},
     }
     logger.info("Evaluation metrics:\n%s", json.dumps(metrics, indent=2))
 

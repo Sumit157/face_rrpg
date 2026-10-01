@@ -2,31 +2,35 @@
 
 Read this before trusting, presenting, or building further on any output of this system.
 
-## The classifier is not validated
+## No validated real-video accuracy is available
 
-Out of the box, `services/ml/app/models/baseline.py` falls back to a hand-written heuristic
-(documented in its docstring) because no trained model ships with this project — there is no
-labelled real/fake video dataset included. Every prediction from the untrained system carries
-`isHeuristicFallback: true`. **Do not treat its REAL/FAKE/UNCERTAIN output as a validated
-forensic result until it has been replaced with a model trained and evaluated per
-`scripts/train_baseline.py` on a real, subject-diverse, real-vs-fake dataset**, with reported
-cross-validated AUC/accuracy/F1 from `scripts/evaluate.py`.
+The repository includes `models/production/baseline.joblib`, a Random Forest trained on
+synthetically generated rPPG features. Its 94% accuracy and 0.982 AUC are from a random holdout
+of that same synthetic signal generator. They do not measure accuracy on genuine or deepfake
+videos. No labeled real/fake video dataset is included, and no cross-dataset test has been run.
+The service marks this optional model `synthetic_unvalidated`; a trained estimator alone is not
+evidence of validated accuracy. The live rPPG decision does not use this artifact.
+**Do not present any REAL/FAKE output as a validated forensic result.**
+
+Use `scripts/train_baseline.py` with verified video-derived features and distinct subject IDs.
+It uses stratified group folds and stops promotion below 80% mean balanced accuracy. Then run
+`scripts/evaluate.py` on a held-out feature table with no subject overlap. Accuracy on that test
+set is meaningful only if it represents the deployment population and deepfake methods.
 
 ## rPPG is not a deepfake detector on its own
 
 A physiologically plausible, consistent pulse signal is evidence the video is *not obviously*
 a class of deepfake that fails to preserve blood-flow cues — it is not proof of authenticity.
 Some synthesis/reenactment methods do preserve or approximate physiological signal; a video
-could also be REAL but score poorly here due to bad lighting, compression, or motion. This tool
-is designed to be one input among several (see `app/models/fusion.py` for a stub late-fusion
-interface with a hypothetical visual-only classifier), not a standalone verdict.
+could also be REAL but score poorly here due to bad lighting, compression, or motion. The live
+output is an rPPG-based directional assessment, not proof of authenticity or manipulation.
 
 ## Signal-quality gating is a heuristic
 
 The SNR→quality-score mapping in `app/rppg/quality.py` and the confidence-discounting curve in
-`app/explainability/confidence.py` are both linear heuristics calibrated by inspection, not
-fitted to labelled ground truth (e.g. Platt scaling against known real/fake outcomes). They
-should be replaced with a properly calibrated curve once evaluation data exists.
+`app/explainability/confidence.py` and rPPG cue weights are heuristics, not fitted to labelled
+ground truth (e.g. Platt scaling against known real/fake outcomes). They should be tuned and
+calibrated against a verified video benchmark before being interpreted as probabilities.
 
 ## Face detection dependency
 

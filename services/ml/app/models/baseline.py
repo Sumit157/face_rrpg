@@ -71,6 +71,21 @@ class BaselineClassifier:
     def version(self) -> str:
         return self._version
 
+    @property
+    def validation_status(self) -> str:
+        """Describe what the loaded artifact's training history supports.
+
+        A trained estimator is not automatically validated on real videos;
+        only a separate labeled, subject-disjoint test can establish that.
+        """
+        if not self.is_trained:
+            return "heuristic_unvalidated"
+        if "synthetic" in self._version.lower():
+            return "synthetic_unvalidated"
+        if getattr(self._model, "external_validation_passed_", False):
+            return "externally_validated"
+        return "trained_unvalidated"
+
     def predict_proba(self, feature_vector: np.ndarray) -> float:
         """P(REAL) in [0, 1] from the trained model, or the heuristic when
         no model file exists. Does NOT apply any uncertainty margin -- see

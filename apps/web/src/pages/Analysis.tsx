@@ -159,17 +159,26 @@ export default function Analysis() {
                       <Diagnostic label="Measurement strength"
                         value={`${Math.round(((data.signalQuality as any)?.measurementStrength ?? 0) * 100)}%`}
                         detail="caps confidence when video is weak" />
-                      <Diagnostic label="Selected rPPG method"
+                      <Diagnostic label="Primary rPPG method"
                         value={String((data.signalQuality as any)?.selectedMethod ?? data.method ?? "auto").toUpperCase()}
-                        detail="GREEN, POS and CHROM compared" />
+                        detail="best quality path; auto mode compares all methods" />
                     </div>
                     {Object.keys((data.signalQuality as any)?.methodScores ?? {}).length > 0 && (
                       <div className="mt-4 border-t border-surface-700 pt-3">
-                        <div className="text-xs text-slate-500 mb-2">Method signal-quality scores</div>
+                        <div className="text-xs text-slate-500 mb-2">
+                          Method signal quality and estimated heart rate
+                          <span className="ml-2">
+                            Frequency agreement: {Object.values((data.signalQuality as any)?.methodMeanBpm ?? {}).filter((bpm) => Number(bpm) > 0).length >= 2
+                              ? `${Math.round(((data.signalQuality as any).methodFrequencyAgreement ?? 0) * 100)}%`
+                              : "not measurable"}
+                          </span>
+                        </div>
                         <div className="flex flex-wrap gap-2">
                           {Object.entries((data.signalQuality as any).methodScores).map(([method, score]) => (
                             <span key={method} className="font-mono text-xs px-2 py-1 rounded bg-surface-800 text-slate-300">
-                              {method.toUpperCase()}: {Number(score).toFixed(1)}
+                              {method.toUpperCase()}: {Number(score) >= 0 ? `${Number(score).toFixed(1)} quality` : "not measurable"}
+                              {Number((data.signalQuality as any)?.methodMeanBpm?.[method]) > 0 &&
+                                ` · ${Number((data.signalQuality as any).methodMeanBpm[method]).toFixed(0)} bpm`}
                             </span>
                           ))}
                         </div>

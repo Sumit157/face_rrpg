@@ -41,6 +41,8 @@ class HealthResponse(BaseModel):
     status: str
     service: str
     modelLoaded: bool
+    modelVersion: str = "unknown"
+    validationStatus: str = "unknown"
 
 
 class ProgressResponse(BaseModel):

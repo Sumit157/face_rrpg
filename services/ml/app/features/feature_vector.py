@@ -124,5 +124,9 @@ def build_feature_vector(
         # Kept outside FEATURE_NAMES until the deployed model is retrained;
         # the decision fusion consumes it immediately without schema drift.
         "effective_kept_window_ratio": extras.get("effective_kept_window_ratio", 0.0),
+        "available_method_count": extras.get("available_method_count", 0.0),
+        "method_frequency_agreement": extras.get("method_frequency_agreement", 0.5),
+        "morphology_available": extras.get("morphology_available", 0.0),
+        "spectral_features_available": extras.get("spectral_features_available", 0.0),
     }
     return FeatureVector(values=values)

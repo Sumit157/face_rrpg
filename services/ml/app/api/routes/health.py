@@ -10,4 +10,10 @@ router = APIRouter()
 @router.get("/health", response_model=HealthResponse)
 def health() -> HealthResponse:
     classifier = get_classifier()
-    return HealthResponse(status="ok", service="rppg-ml-service", modelLoaded=classifier.is_trained)
+    return HealthResponse(
+        status="ok",
+        service="rppg-ml-service",
+        modelLoaded=classifier.is_trained,
+        modelVersion=classifier.version,
+        validationStatus=classifier.validation_status,
+    )

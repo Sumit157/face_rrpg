@@ -92,6 +92,8 @@ def analyse_regions(
     # 4. Clip-level extras (harmonic/phase/amplitude + new morphology and
     #    spectral features) computed on the chosen method's signals.
     extras: Dict[str, float] = {}
+    extras["morphology_available"] = 0.0
+    extras["spectral_features_available"] = 0.0
     if region_signals:
         primary_region = next(iter(region_signals))
         primary_result = region_results[primary_region]
@@ -117,6 +119,8 @@ def analyse_regions(
         extras["spectral_entropy"] = float(np.mean(entropies))
         extras["template_correlation"] = float(np.mean(templates))
         extras["pulse_skewness"] = float(np.mean(skews))
+        extras["morphology_available"] = 1.0
+        extras["spectral_features_available"] = 1.0
 
         # Left vs right cheek bilateral correlation (key deepfake cue).
         if "left_cheek" in region_signals and "right_cheek" in region_signals:
@@ -129,6 +133,11 @@ def analyse_regions(
 
     extras["kept_window_ratio"] = gating.kept_ratio
     extras["effective_kept_window_ratio"] = gating.effective_kept_ratio
+    available_methods = [
+        name for name, quality in selection.mean_quality.items() if quality >= 0.0
+    ]
+    extras["available_method_count"] = float(len(available_methods))
+    extras["method_frequency_agreement"] = selection.frequency_agreement
     extras["gated_bpm_mean"], extras["gated_bpm_std"], extras["gated_bpm_cv"], \
         extras["gated_bpm_max_jump"] = gated_temporal(gating.kept_bpm)
 

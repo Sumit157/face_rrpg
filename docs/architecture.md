@@ -26,7 +26,7 @@ apps/web (React/Vite)  --HTTP/WebSocket-->  apps/api (Express)  --HTTP-->  servi
   science is a single HTTP client (`services/python.service.ts`) that calls the Python
   service.
 - **services/ml** — FastAPI + OpenCV + MediaPipe + NumPy/SciPy/scikit-learn. Owns 100% of
-  the actual video processing, rPPG extraction, feature engineering, and classification.
+  the actual video processing, rPPG extraction, feature engineering, and cue fusion.
   Stateless: given a video path and parameters, it returns a structured JSON result. It
   does not know about SQLite or HTTP sessions.
 
@@ -48,8 +48,8 @@ developed, tested, and iterated on entirely independently of the web application
    (`extracting_signals` → `processing_signals` → … → `generating_report`) to the
    `Analysis` row, so the frontend sees granular progress.
 4. `services/ml` runs `app/pipeline/end_to_end.py`: validate → extract faces/ROIs → extract
-   rPPG per region → filter/window → FFT/BPM → signal quality → cross-region consistency →
-   feature vector → classifier → calibrated confidence → evidence/warnings → structured
+   rPPG per region → filter/window → FFT/BPM → signal quality → cross-region and cross-method
+   consistency → feature vector → rPPG cue fusion → quality-discounted confidence → evidence/warnings → structured
    report. The in-memory progress registry (`app/core/progress.py`) backs the progress
    endpoint; per-region waveform/spectrum arrays are written to
    `storage/signals/{analysis_id}.json` (`app/explainability/artifacts.py`).
@@ -118,6 +118,6 @@ adapter (or equivalent pub/sub) plus an external queue.
 ## Known gaps (see docs/implementation_status.md for the full list)
 
 - Docker artifacts exist but are untested in this environment (Docker unavailable).
-- No trained classifier ships with the repo; predictions come from the clearly-labelled
-  heuristic fallback until `scripts/train_baseline.py` + `scripts/evaluate.py` are run on
-  a real labelled dataset.
+- An optional bundled classifier was trained on synthetic signals and is unvalidated on real
+  videos; it is excluded from the live rPPG decision. See `docs/limitations.md` before
+  interpreting any accuracy number.

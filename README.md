@@ -5,16 +5,17 @@ explainable, physiological cue for deepfake detection research — measuring whe
 video shows spatially consistent, physiologically plausible blood-flow signal across the
 forehead and cheeks.
 
-**This is not a standalone deepfake detector — read [`docs/limitations.md`](docs/limitations.md)
-before using or presenting any output.** In particular: no trained classifier ships with this
-repo (no labelled dataset was provided), so out of the box every prediction comes from a
-clearly-labelled, unvalidated heuristic fallback (`isHeuristicFallback: true`).
+**This is an rPPG-based research detector, not a validated forensic system — read
+[`docs/limitations.md`](docs/limitations.md) before using or presenting any output.** The live
+verdict is produced by transparent signal-cue fusion; the optional synthetic classifier artifact
+does not influence a prediction. No labeled real/fake video benchmark is currently provided, so
+real-world accuracy has not been established.
 
 ## What's real vs. scaffolded
 
-The rPPG science — video → face/ROI tracking → Green/CHROM/POS signal extraction → filtering →
-FFT/BPM → signal quality → cross-region consistency → feature vector → classifier →
-explainability — is **implemented and tested end-to-end** (`services/ml/`, see
+The rPPG pipeline — video → face/ROI tracking → GREEN/CHROM/POS signal extraction → filtering →
+FFT/BPM → signal quality → cross-region and cross-method consistency → feature vector →
+physiology-cue fusion → explainability — is implemented end-to-end (`services/ml/`, see
 `services/ml/tests/`). The Node/Express API and React frontend around it have also been run
 and verified end-to-end locally (upload → queued job → progress → completed analysis with
 signal/report endpoints; see [`docs/implementation_status.md`](docs/implementation_status.md)).
@@ -27,18 +28,21 @@ run for every clip; the strongest method is selected after window-level SNR chec
 detrends and band-pass filters signals to 0.7–4 Hz, suppresses background illumination drift, and
 uses landmark/optical-flow motion to discount unstable measurements.
 
-The final decision fuses a calibrated Random Forest probability with transparent cues: bilateral
-cheek correlation, cross-region frequency and phase agreement, SNR, heart-rate stability,
-waveform repeatability, morphology, and compression-resistant spectral concentration. Windows
-near the SNR floor are down-weighted instead of causing a blanket inconclusive result. `UNCERTAIN`
-is reserved for a missing face or a truly unmeasurable video; a face-detectable video otherwise
-returns Real or Fake with quality-calibrated confidence. The result page shows those quality-gate
-and method diagnostics, and **Signal Explorer** provides the per-region waveform and spectrum.
+The final decision uses no trained classifier. It combines bilateral cheek correlation,
+cross-region frequency/phase agreement, agreement between the GREEN/POS/CHROM pulse estimates,
+SNR, heart-rate stability, waveform repeatability, morphology, and compression-resistant spectral
+concentration. The method with the strongest measured signal quality is used for detailed region
+features, while all successfully extracted methods contribute a frequency-agreement cue. Windows
+near the SNR floor are down-weighted. `UNCERTAIN` is reserved for a missing face or truly
+unmeasurable video; other clips receive a directional Real/Fake result with confidence reduced
+when measurements are weak. The result page shows quality and method diagnostics, and **Signal
+Explorer** provides the per-region waveform and spectrum. A lack of rPPG coherence can also result
+from motion, lighting, compression, or camera limitations; it is not standalone proof of forgery.
 
 `models/production/baseline.joblib` is trained on synthetic physiological-coherence data and is
-useful as a lightweight fallback. For a production claim, retrain and evaluate it with labelled,
-subject-disjoint real and manipulated video using `scripts/extract_features.py`,
-`scripts/train_baseline.py`, and `scripts/evaluate.py`.
+available for offline pipeline experiments only. It does not affect the live verdict. Neither
+synthetic holdout performance nor a target threshold establishes real-world accuracy; that
+requires a verified, representative, subject-disjoint set of genuine and manipulated videos.
 
 ## Quick start (local, zero infrastructure)
 

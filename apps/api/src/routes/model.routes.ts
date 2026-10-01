@@ -20,13 +20,23 @@ function readEvaluationMetrics(): Record<string, unknown> | null {
 
 async function modelInfo(id: string) {
   let loaded = false;
+  let modelVersion: string | null = null;
+  let validationStatus = "ml_service_unavailable";
   try {
     const health = await pythonService.health();
     loaded = health.modelLoaded;
+    modelVersion = health.modelVersion ?? null;
+    validationStatus = health.validationStatus ?? "unverified";
   } catch {
     // ML service down -- report loaded:false rather than 500 on a read route
   }
-  return { id, loaded, metrics: id === "baseline" ? readEvaluationMetrics() : null };
+  return {
+    id,
+    loaded,
+    modelVersion,
+    validationStatus,
+    metrics: id === "baseline" ? readEvaluationMetrics() : null,
+  };
 }
 
 modelRouter.get("/", async (_req, res) => {

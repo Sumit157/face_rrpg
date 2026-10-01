@@ -121,7 +121,7 @@ def run_analysis(
                 "Face was detected in less than 30% of frames; results are unreliable."
             )
 
-        progress("extracting_signals", 45, f"Extracting {method.upper()} rPPG signal per region")
+        progress("extracting_signals", 45, f"Extracting and comparing GREEN/POS/CHROM rPPG per region")
         progress("processing_signals", 60, "Filtering, quality-gating and windowing signals")
         progress("extracting_features", 75, "Computing temporal and cross-region features")
         region_analysis = analyse_regions(
@@ -173,7 +173,7 @@ def run_analysis(
                 )
             windows_info.append({"region": region, "windows": entries})
 
-        progress("running_model", 88, "Running quality-aware decision fusion")
+        progress("running_model", 88, "Fusing rPPG physiology and signal-quality evidence")
         bundle = run_prediction(
             region_analysis, detection_rate=extraction.tracking.detection_rate
         )
@@ -211,6 +211,13 @@ def run_analysis(
             m: round(q, 1) for m, q in region_analysis.method_selection.mean_quality.items()
         }
         signal_quality_summary["selectedMethod"] = region_analysis.method_selection.selected
+        signal_quality_summary["methodMeanBpm"] = {
+            name: round(value, 1)
+            for name, value in region_analysis.method_selection.mean_bpm.items()
+        }
+        signal_quality_summary["methodFrequencyAgreement"] = round(
+            region_analysis.method_selection.frequency_agreement, 3
+        )
         signal_quality_summary["measurementStrength"] = round(
             bundle.decision.measurement_strength, 3
         )

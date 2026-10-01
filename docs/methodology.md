@@ -31,22 +31,24 @@ lighting, motion, or camera quality can equally cause it (which is exactly why m
 illumination are scored and surfaced as separate confounds, not folded silently into the
 verdict).
 
-## Classifier
+## Model-free rPPG decision
 
-`app/models/baseline.py` ships two things:
+The live verdict is built only from measured rPPG cues in
+`app/features/cue_scores.py` and `app/pipeline/decision.py`. The main cue families are
+cross-region synchronization, agreement between GREEN/POS/CHROM dominant heart-rate estimates,
+spectral SNR, temporal stability, pulse morphology, and spectral concentration. Missing temporal
+or morphology measurements are neutral; they are not silently treated as evidence of a stable,
+natural pulse. Signal quality and surviving-window ratio discount the score toward neutral and
+reduce reported confidence. An optional synthetic classifier file may exist for experiments, but
+the live decision does not load it or use its probability.
 
-1. **The real path**: load a `scikit-learn` classifier (Logistic Regression / Random Forest /
-   SVM, selected by cross-validated AUC — see `scripts/train_baseline.py`) trained on the
-   11-dimensional feature vector in `app/features/feature_vector.py`.
-2. **The fallback**: if no trained model file exists at `MODEL_PATH`, a transparent weighted
-   heuristic over signal quality, cross-region correlation/frequency agreement, and BPM
-   stability — explicitly labelled `isHeuristicFallback: true` in every API response and in the
-   UI. This exists only so the full application is exercisable before a labelled dataset is
-   available; it is not a validated classifier and should never be presented or compared as one.
+These cues measure pulse consistency, not identity or provenance. Poor rPPG evidence may arise
+from motion, lighting, compression, skin exposure, or camera quality, so a Fake-leaning result is
+not standalone proof of manipulation.
 
 ## Training protocol (once a dataset exists)
 
-`scripts/train_baseline.py` uses **GroupKFold on subject ID**, not plain K-fold — this is
+`scripts/train_baseline.py` uses **StratifiedGroupKFold on subject ID**, not plain K-fold — this is
 required for a valid subject-independent evaluation (a model that has seen a person's face in
 training and sees a different clip of the same person at test time will look artificially
 good). See spec Objective 12 / Definition of Done.
@@ -80,7 +82,6 @@ in a network-restricted environment during this project's development.
 
 `app/explainability/evidence.py` converts computed features into plain-language evidence and
 warning strings using fixed, documented thresholds (not learned) — e.g. signal quality below
-40 always produces a warning that the result is unreliable, regardless of what the classifier
-outputs. `app/explainability/confidence.py` discounts the model's raw probability toward 0.5 in
-proportion to how far signal quality falls below a "trustworthy" threshold, so a confident
-model output computed from a noisy signal is never presented as confident to the user.
+40 always produces a warning that the result is unreliable. `app/explainability/confidence.py`
+reports the rPPG cue score after discounting it by measurement strength. This remains a heuristic
+score, not a calibrated probability of authenticity.

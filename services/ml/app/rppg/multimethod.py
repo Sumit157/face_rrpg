@@ -14,6 +14,7 @@ candidate method, averaged across usable regions. The chosen method and
 its competitor scores are reported so the decision stays explainable.
 """
 from __future__ import annotations
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
 from typing import Dict, List
 
@@ -32,11 +33,16 @@ CANDIDATE_METHODS: List[str] = ["green", "chrom", "pos"]
 class MethodSelection:
     selected: str
     mean_quality: Dict[str, float] = field(default_factory=dict)  # per candidate
+    mean_bpm: Dict[str, float] = field(default_factory=dict)  # quality-gated candidate HR
+    frequency_agreement: float = 0.5
 
     def summary(self) -> str:
         ranked = sorted(self.mean_quality.items(), key=lambda kv: -kv[1])
-        parts = [f"{m}={q:.1f}" for m, q in ranked]
-        return ", ".join(parts)
+        parts = [
+            f"{m}={q:.1f} (HR {self.mean_bpm.get(m, 0.0):.1f} bpm)"
+            for m, q in ranked
+        ]
+        return f"{', '.join(parts)}; method frequency agreement={self.frequency_agreement:.0%}"
 
 
 def extract_method_signals(
@@ -45,11 +51,25 @@ def extract_method_signals(
     """One preprocessed rPPG signal per requested method for one region."""
     methods = CANDIDATE_METHODS if method == "auto" else [method]
     out: Dict[str, np.ndarray] = {}
-    for m in methods:
+
+    def extract_one(m: str) -> tuple[str, np.ndarray | None]:
         try:
-            out[m] = extract_rppg(rgb_trace, fps, method=m)
+            return m, extract_rppg(rgb_trace, fps, method=m)
         except Exception:  # noqa: BLE001 -- one broken method must not kill the analysis
             logger.exception("rPPG method '%s' failed on a region; skipping it", m)
+            return m, None
+
+    # The three colour projections are independent for a given ROI. Run them
+    # concurrently, while collecting in candidate order for deterministic
+    # diagnostics and selecting the best method downstream.
+    if len(methods) > 1:
+        with ThreadPoolExecutor(max_workers=len(methods), thread_name_prefix="rppg") as pool:
+            results = pool.map(extract_one, methods)
+            out.update({name: signal for name, signal in results if signal is not None})
+    else:
+        name, signal = extract_one(methods[0])
+        if signal is not None:
+            out[name] = signal
     return out
 
 
@@ -74,6 +94,7 @@ def analyse_methods(
     # gives every candidate the exact same windowing so scores compare.
     per_method_results: Dict[str, Dict[str, RegionHRResult]] = {}
     mean_quality: Dict[str, float] = {}
+    mean_bpm: Dict[str, float] = {}
     for m in candidates:
         region_res: Dict[str, RegionHRResult] = {}
         scores: List[float] = []
@@ -86,6 +107,24 @@ def analyse_methods(
             scores.append(res.mean_quality_score)
         per_method_results[m] = region_res
         mean_quality[m] = float(np.mean(scores)) if scores else -1.0
+        usable_bpm = [
+            bpm
+            for result in region_res.values()
+            for bpm, quality in zip(result.window_bpm, result.window_quality)
+            if 40.0 <= bpm <= 180.0 and quality.snr_db >= -8.0
+        ]
+        mean_bpm[m] = float(np.median(usable_bpm)) if usable_bpm else 0.0
+
+    measured_bpm = [bpm for bpm in mean_bpm.values() if bpm > 0.0]
+    # Fraction of measurable method pairs that agree within 12 BPM. Two
+    # methods are enough to expose agreement; absent methods remain neutral.
+    agreeing_pairs = sum(
+        abs(measured_bpm[i] - measured_bpm[j]) <= 12.0
+        for i in range(len(measured_bpm))
+        for j in range(i + 1, len(measured_bpm))
+    )
+    pair_count = len(measured_bpm) * (len(measured_bpm) - 1) // 2
+    frequency_agreement = agreeing_pairs / pair_count if pair_count else 0.5
 
     best = max(mean_quality, key=lambda k: mean_quality[k])
     # Guard: if every candidate scored -1.0 (no usable region at all) keep
@@ -97,5 +136,10 @@ def analyse_methods(
             "Auto-selected rPPG method '%s' (mean window quality: %s)",
             best, ", ".join(f"{m}={q:.1f}" for m, q in sorted(mean_quality.items(), key=lambda kv: -kv[1])),
         )
-    selection = MethodSelection(selected=best, mean_quality=mean_quality)
+    selection = MethodSelection(
+        selected=best,
+        mean_quality=mean_quality,
+        mean_bpm=mean_bpm,
+        frequency_agreement=float(frequency_agreement),
+    )
     return per_method_results[best], selection

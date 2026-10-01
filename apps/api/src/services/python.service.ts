@@ -24,7 +24,12 @@ export class PythonService {
     this.baseUrl = baseUrl;
   }
 
-  async health(): Promise<{ status: string; modelLoaded: boolean }> {
+  async health(): Promise<{
+    status: string;
+    modelLoaded: boolean;
+    modelVersion?: string;
+    validationStatus?: string;
+  }> {
     const { data } = await axios.get(`${this.baseUrl}/health`, { timeout: 5000 });
     return data;
   }

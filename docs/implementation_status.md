@@ -57,9 +57,9 @@ verified in headless Chrome with zero console errors.
 
 ## Not implemented (explicitly out of scope for this build)
 
-- No trained classifier ships with this repo — no labelled real/fake dataset was provided.
-  Every out-of-the-box prediction comes from the clearly-labelled heuristic fallback
-  (`isHeuristicFallback: true`, `modelVersion: untrained-heuristic-v0`).
+- The bundled `baseline.joblib` is trained on synthetic signal features; no labeled real/fake
+  video dataset was provided. It is marked `synthetic_unvalidated` and its synthetic holdout
+  metrics do not establish real-video prediction accuracy.
 - No authentication/authorization implementation (Prisma has a `User` model; no auth routes
   were built — deferred past MVP in the spec).
 - No deep-learning model is trained (`app/models/cnn1d.py` / `tcn.py` are architecture
