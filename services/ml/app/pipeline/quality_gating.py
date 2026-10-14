@@ -21,8 +21,11 @@ from app.features.hr_features import RegionHRResult
 
 # Compression and phone footage frequently sits below the older -6 dB
 # cutoff. Keep borderline windows with a small reliability weight.
+# Full weight is reached at 0 dB because that is the practical ceiling
+# of this pipeline's Welch-based SNR measurement; the old +3 dB target
+# gave every kept window on real footage a weight near 0.35.
 SNR_FLOOR_DB = -8.0
-SNR_FULL_WEIGHT_DB = 3.0
+SNR_FULL_WEIGHT_DB = 0.0
 BAND_RATIO_MIN = 0.02
 BPM_MIN = 40.0
 BPM_MAX = 180.0

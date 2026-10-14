@@ -12,7 +12,7 @@ from typing import Dict, Optional
 import numpy as np
 
 from app.core.logging import get_logger
-from app.features.cue_scores import rule_score
+from app.features.cue_scores import implausible_hr, rule_score
 
 logger = get_logger(__name__)
 SNR_FLOOR_DB = -8.0
@@ -33,7 +33,7 @@ class Decision:
     rule_score: float = 0.5
     model_score: Optional[float] = None  # always None for rPPG-only inference
     uncertain_reason: str = ""
-    model_version: str = "rppg-multicue-v2"
+    model_version: str = "rppg-multicue-v3"
     is_heuristic_fallback: bool = True
 
     @property
@@ -42,7 +42,10 @@ class Decision:
 
 
 def measurement_strength(f: Dict[str, float], detection_rate: float) -> float:
-    quality = _clip01(f.get("signal_quality_mean", 0.0) / 60.0)
+    # Quality maps from the *measured* SNR range (-9..2 dB); a usable
+    # real-world clip typically scores 35-70, so /60 rather than /60 on a
+    # scale that almost never reaches 60.
+    quality = _clip01(f.get("signal_quality_mean", 0.0) / 45.0)
     kept = _clip01(f.get("effective_kept_window_ratio", f.get("kept_window_ratio", 0.0)))
     detection = _clip01((detection_rate - 0.3) / 0.5)
     return float(np.clip(0.40 * quality + 0.30 * kept + 0.30 * detection, 0.0, 1.0))
@@ -87,6 +90,11 @@ def _explanation(f: Dict[str, float], cues: Dict[str, float], label: str) -> str
         text += f" (mean region correlation {corr:+.2f})"
     if methods >= 2:
         text += f"; GREEN/POS/CHROM frequency agreement {method_agreement:.0%}"
+    if implausible_hr(f) > 0.5:
+        text += (
+            f"; non-physiological HR behaviour (cv {f.get('bpm_cv', 0.0):.2f}, "
+            f"max window jump {f.get('bpm_max_jump', 0.0):.0f} bpm)"
+        )
     text += "; lack of a coherent pulse is not standalone proof of manipulation"
     return text
 
@@ -108,9 +116,11 @@ def decide(feature_values: Dict[str, float], detection_rate: float = 1.0) -> Dec
             f"lighting stability {feature_values.get('illumination_stability', 0.0):.0f})"
         )
     else:
-        # No real/fake prior: weak or mixed evidence stays near 50%, while
-        # the label follows the aggregate direction. Quality controls its pull.
-        p_final = 0.5 + strength * (rppg_score - 0.5)
+        # No real/fake prior: the label follows the aggregate rule score.
+        # Measurement strength discounts reported CONFIDENCE (below)
+        # instead of also shrinking the probability, which used to count
+        # the same weakness twice and kept real verdicts near 55%.
+        p_final = 0.5 + (rppg_score - 0.5)
         label = "REAL" if p_final >= 0.5 else "FAKE"
         side_probability = p_final if label == "REAL" else 1.0 - p_final
         discount = _clip01(0.35 + 0.65 * strength)
@@ -129,7 +139,7 @@ def decide(feature_values: Dict[str, float], detection_rate: float = 1.0) -> Dec
         cues=cues,
         rule_score=rppg_score,
         uncertain_reason=reason,
-        model_version="rppg-multicue-v2",
+        model_version="rppg-multicue-v3",
         is_heuristic_fallback=True,
     )
     logger.info(

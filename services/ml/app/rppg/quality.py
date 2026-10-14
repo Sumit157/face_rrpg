@@ -49,10 +49,13 @@ def compute_snr(freqs: np.ndarray, power: np.ndarray, peak_hz: float,
 
 def score_from_snr(snr_db: float) -> float:
     """Map SNR (dB) to an intuitive 0-100 score via a clipped linear map.
-    Calibrated so ~ -5dB (dominated by noise) -> ~10, and ~10dB (clean
-    pulsatile signal) -> ~95. This mapping is a heuristic, not a
-    validated clinical scale, and is presented to users as such."""
-    lo, hi = -10.0, 12.0
+
+    Calibrated to the SNR this pipeline actually measures (Welch power
+    around the dominant peak vs the rest of the band): buried/noise-floor
+    signals sit near -9 dB, usable real-world footage near -5..-2 dB, and
+    even clean clips rarely exceed +2 dB. The old -10..+12 range made
+    every real video score in the 20s and read as 'poor'."""
+    lo, hi = -9.0, 2.0
     score = (snr_db - lo) / (hi - lo) * 100
     return float(np.clip(score, 0, 100))
 
